@@ -10,6 +10,7 @@ from pandas import DataFrame
 # Golbal Variable
 datenow=(time.strftime("%Y-%m-%d"))
 COS_LIST='/opt/automateams/var/cos_list.csv'
+DL_LIST='/opt/automateams/var/dl_list.csv'
 filename=sys.argv[1]
 ADEX_FILE='/opt/output/adexchange.csv'
 ZM_FILE='/opt/output/adzimbra.csv'
@@ -17,14 +18,16 @@ ZM_FILE='/opt/output/adzimbra.csv'
 # Index COS file
 cos_list = pd.read_csv(COS_LIST,sep=',|;', engine='python')
 
-
+# Index DL file
+dl_list = pd.read_csv(DL_LIST,sep=',|;', engine='python')
+dl_list2 = dl_list.applymap(lambda x: x.lower())
 
 #Global Column MANDATORY
 df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','MANAGER','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','COS'], sep=',|;', engine='python')
 
-# Join table
+#---------- Join table 1 for zimbra------------------
 maindf = cos_list.merge(df, how = 'inner', on = ['COS'])
-print(maindf)
+print (maindf)
 
 ## Split email address to sAMAccountName and limit just 20 Char in there because of AD limitation
 sAMAccountName_field = maindf.EMAIL.str.split("@").str[0].str.slice(0, 20)
@@ -42,6 +45,10 @@ maindf['DisplayName'] = cn_field
 date_field = datenow
 maindf['date_created'] = date_field
 
+#convert to lowercase for spesific column
+maindf['COS']=maindf['COS'].str.lower()
+maindf['CITY']=maindf['CITY'].str.lower()
+
 
 #Add new column for zimbra mandatory
 maindf['createAccount']='createAccount'
@@ -53,7 +60,6 @@ maindf['telephoneNumber']='telephoneNumber'
 maindf['zimbraCOSid']='zimbraCOSid'
 maindf['alias']='aaa'
 maindf['adlm']='adlm'
-maindf['dl_address']='dl_address'
 #--
 maindf['ZEMP_NO']="'"+maindf.EMP_NO.astype('str')+"'"
 maindf['alias_domain']=maindf['USERNAME']+'@'+maindf['domain_name']
@@ -63,27 +69,25 @@ maindf['Zphone']="'"+maindf.MOBILE_PHONE.astype('str')+"'"
 
 #--
 
+#---------- Join table 2 for zimbra DL------------------
+dl_df = dl_list2.merge(maindf, how = 'inner', on = ['COS','CITY'])
+print (dl_df)
 
 # DECIDE Field by feature and Position
 AD_EXCHANGE = maindf.loc[(maindf.AD.str.lower() == 'y') & (maindf.EXCHANGE.str.lower() == 'y')]
 AD_ZIMBRA = maindf.loc[(maindf.AD.str.lower() == 'y') & (maindf.EXCHANGE.str.lower() == 'n')]
 zimbraonly = maindf.loc[(maindf.AD.str.lower() == 'n') & (maindf.EXCHANGE.str.lower() == 'n')]
 
-print (AD_EXCHANGE)
-print (AD_ZIMBRA)
-print (zimbraonly)
-
 
 
 #Global Table AD Format
-#tbl_adex=['employe_number','username','first_name','last_name','email','position','l','supervisior','manager','enable_mailbox','sAMAccountName','cn','department']
 tbl_adex=['EmployeeNo','FirstName','LastName','DisplayName','UserLogonName','JobTitle','City','Office','Department','EnableMailbox']
 
-# Export to csv ADEX
+# Export to csv Untuk AD format dengan Exchange
 CONV_AD_EXCHANGE = AD_EXCHANGE.astype('str').replace('\.0', '', regex=True)
 CONV_AD_EXCHANGE.to_csv(ADEX_FILE, sep=',', encoding='utf-8', index = None, header=tbl_adex,columns=['EMP_NO','FIRST_NAME','LAST_NAME','DisplayName','sAMAccountName','POSITION','CITY','WORK_LOCATION','COST_CENTER','EXCHANGE'])
 
-# EXPORT TO CSV FOR create AD_ONLY
+# EXPORT TO CSV FOR untuk  AD_ONLY
 CONV_AD_ONLY = AD_ZIMBRA.astype('str').replace('\.0', '', regex=True)
 CONV_AD_ONLY.to_csv(ADEX_FILE, mode = 'a' ,sep=',', encoding='utf-8', index = None, header=None,columns=['EMP_NO','FIRST_NAME','LAST_NAME','DisplayName','sAMAccountName','POSITION','CITY','WORK_LOCATION','COST_CENTER','EXCHANGE'])
 
@@ -106,6 +110,4 @@ CONV_ZM_AD.to_csv(ZM_FILE,encoding='utf-8',sep=' ', index = None, header=None, m
 CONV_ZM_ONLY.to_csv(ZM_FILE,encoding='utf-8',sep=' ', index = None, header=None, mode = 'a', columns=['alias','EMAIL','alias_domain'])
 
 # DL IN ZIMBRA
-CONV_ZM_AD.to_csv(ZM_FILE,encoding='utf-8',sep=' ', index = None, header=None, mode = 'a', columns=['adlm','dl_address','EMAIL'])
-CONV_ZM_ONLY.to_csv(ZM_FILE,encoding='utf-8',sep=' ', index = None, header=None, mode = 'a', columns=['adlm','dl_address','EMAIL'])
-
+dl_df.to_csv(ZM_FILE,encoding='utf-8',sep=' ', index = None, header=None, mode = 'a', columns=['adlm','dl_address','EMAIL'])
