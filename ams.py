@@ -6,18 +6,6 @@ import re
 datenow=(time.strftime("%Y-%m-%d"))
 filename=sys.argv[1]
 
-# Generate for Windows system + exchange mail 
-#with open(filename, mode='rt') as csv_file:
-#    csv_reader = csv.DictReader(csv_file)
-#    line_count = 0
-#    for row in csv_reader:
-#        if line_count == 0:
-#            #print(f'{", ".join(row)}')
-#            line_count += 1
-		
-#        print(f'{row["employe_id"]},{row["f_name"]},{row["l_name"]},{row["email"]},{row["username"]},{row["password"]},{row["position"]},{row["l"]},{row["ticketnumber"]},{datenow}')
-#        line_count += 1
-
 with open(filename, 'r') as source_data:
 	csv_reader = csv.DictReader(source_data)
 	
