@@ -5,7 +5,6 @@ import numpy as np
 import time
 import sys
 import random
-import MySQLdb
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
