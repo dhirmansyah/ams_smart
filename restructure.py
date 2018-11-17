@@ -5,6 +5,12 @@ import numpy as np
 import time
 import sys
 import random
+import os
+import glob
+import paramiko
+import getpass
+import scpclient
+import md5
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
@@ -147,3 +153,26 @@ engine = create_engine("mysql://root:paganini@localhost/homecredit")
 
 insertdb = pd.read_csv(IMPORT_DB)
 insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='replace')
+
+
+
+# ------------------------------------- SEND TO SSH
+# http://code.activestate.com/recipes/576810-copy-files-over-ssh-using-paramiko/
+hostname = '10.58.122.209' # remote hostname where SSH server is running
+port = 22
+username = 'root'
+#password = 'myssh-password'
+rsa_private_key = r"/home/paramikouser/.ssh/rsa_private_key"
+
+dir_local='/home/paramikouser/local_data'
+dir_remote = "remote_machine_folder/subfolder"
+glob_pattern='*.*'
+
+def scp_to_server():
+    """ Securely copy the file to the server. """
+    ssh_client = paramiko.SSHClient()
+    ssh_client.load_system_host_keys()
+    ssh_client.connect("EXAMPLE.COM", username="USER_NAME", password="PASSWORD")
+
+    with scpclient.closing(scpclient.Write(ssh_client.get_transport(), "~/")) as scp:
+        scp.send_file("LOCAL_FILENAME", remote_filename="REMOTE_FILENAME")
