@@ -21,9 +21,10 @@ IMPORT_DB='/opt/output/importdb.csv'
 # Index COS file
 cos_list = pd.read_csv(COS_LIST,sep=',|;', engine='python')
 
-# Index DL file
+# Index Distribution List file
 dl_list = pd.read_csv(DL_LIST,sep=',|;', engine='python')
-dl_list2 = dl_list.applymap(lambda x: x.lower())
+# Convert Distribution List to lowercase
+conv_dl_list = dl_list.applymap(lambda x: x.lower())
 
 #Global Column MANDATORY
 df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','MANAGER','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','COS'], sep=',|;', engine='python')
@@ -65,10 +66,6 @@ maindf['telephoneNumber']='telephoneNumber'
 maindf['zimbraCOSid']='zimbraCOSid'
 maindf['alias']='aaa'
 maindf['adlm']='adlm'
-#maindf['status_employee']='status_employee'
-#maindf['status_email']='status_email'
-#maindf['id_lync_stts_ftime']='id_lync_stts_ftime'
-#maindf['id_mobile_stts_ftime']='id_mobile_stts_ftime'
 maindf['status_employee']='0'
 maindf['status_email']='0'
 maindf['id_lync_stts_ftime']='0'
@@ -83,7 +80,7 @@ maindf['Zphone']="'"+maindf.MOBILE_PHONE.astype('str')+"'"
 #--
 
 #---------- Join table 2 for zimbra DL------------------
-dl_df = dl_list2.merge(maindf, how = 'inner', on = ['COS','CITY'])
+dl_df = conv_dl_list.merge(maindf, how = 'inner', on = ['COS','CITY'])
 print ('print dl_df')
 print (dl_df)
 
@@ -136,24 +133,6 @@ maindf.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', he
 #------------------------------------- INSERT DB AMS
 #-- DB AMS
 engine = create_engine("mysql://root:paganini@localhost/homecredit")
-#Base.metadata.create_all(engine)
 
 insertdb = pd.read_csv(IMPORT_DB)
 insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='replace')
-#insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='append')
-#insertdb.to_sql()
-
-#ams = MySQLdb.connect(host= "localhost",
-#                  user="root",
-#                  passwd="paganini",
-#                  db="homecredit")
-
-#mycursor = ams.cursor()
-#create_employee = "INSERT INTO tbl_users (nik,username,upn,password,f_name,l_name,d_name,email,position,department,office,status_employee,status_email,date_created,otrs_date_created,id_lync_stts,id_mobile_stts,mobile_phone) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-
-#number_of_rows = mycursor.executemany(create_employee, printtest)
-
-#conn.commit()
-#db.close()
-
-#print(mycursor.rowcount, "record inserted.")
