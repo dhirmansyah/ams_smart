@@ -31,13 +31,10 @@ df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME'
 
 #---------- Join table 1 for zimbra------------------
 maindf = cos_list.merge(df, how = 'inner', on = ['COS'])
-print('main df print')
-print (maindf)
 
 ## Split email address to sAMAccountName and limit just 20 Char in there because of AD limitation
 sAMAccountName_field = maindf.EMAIL.str.split("@").str[0].str.slice(0, 20)
 maindf['sAMAccountName'] = sAMAccountName_field.str.slice(0, 20)
-print(sAMAccountName_field)
 
 ## Domain name
 domain_field = maindf.EMAIL.str.split("@").str[1]
@@ -81,8 +78,6 @@ maindf['Zphone']="'"+maindf.MOBILE_PHONE.astype('str')+"'"
 
 #---------- Join table 2 for zimbra DL------------------
 dl_df = conv_dl_list.merge(maindf, how = 'inner', on = ['COS','CITY'])
-print ('print dl_df')
-print (dl_df)
 
 # DECIDE Field by feature and Position
 AD_EXCHANGE = maindf.loc[(maindf.AD.str.lower() == 'y') & (maindf.EXCHANGE.str.lower() == 'y')]
