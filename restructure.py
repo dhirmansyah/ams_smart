@@ -11,14 +11,15 @@ import paramiko
 import getpass
 import scpclient
 import md5
+import subprocess
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
 
 # Golbal Variable
 datenow=(time.strftime("%Y-%m-%d"))
-COS_LIST='/opt/automateams/var/cos_list.csv'
-DL_LIST='/opt/automateams/var/dl_list.csv'
+#COS_LIST='/opt/automateams/var/cos_list.csv'
+DL_LIST='/opt/automateams/var/distribution_cos.csv'
 filename=sys.argv[1]
 ADEX_FILE='/opt/output/adexchange.csv'
 ZM_FILE='/opt/output/adzimbra.csv'
@@ -26,12 +27,12 @@ TMP_ZM='/opt/output/tmpzimbra.csv'
 IMPORT_DB='/opt/output/importdb.csv'
 
 # Index COS file
-cos_list = pd.read_csv(COS_LIST,sep=',|;', engine='python').apply(lambda x: x.astype(str).str.lower())
 # Index Distribution List file
 dl_list = pd.read_csv(DL_LIST,sep=',|;', engine='python').apply(lambda x: x.astype(str).str.lower())
+print (dl_list)
 
 #Global Column MANDATORY
-df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','MANAGER','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','COS','EMPLOYEE_NAME'], sep=',|;', engine='python')
+df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','MANAGER','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','POS_ID','EMPLOYEE_NAME'], sep=',|;', engine='python')
 
 
 ## Split email address to sAMAccountName and limit just 20 Char in there because of AD limitation
@@ -61,7 +62,7 @@ date_field = datenow
 df['date_created'] = date_field
 
 #convert to lowercase for spesific column
-df['COS']=df['COS'].str.lower()
+df['POS_ID']=df['POS_ID'].str.lower()
 df['CITY']=df['CITY'].str.lower()
 
 #Add colom for insert to database by default value
@@ -99,15 +100,14 @@ AD_EXCHANGE.head()
 # Khusus untuk Create Zimbra Join table antara AD_ZIMBRA dan zimbraonly
 zm_create = AD_ZIMBRA.append(zimbraonly)
 
-#---------- Join table 1 for zimbra------------------
-cos_join = cos_list.merge(zm_create, how = 'inner', on = ['COS'])
-
 
 #--
 
 #---------- Join table 2 for zimbra DL------------------
 #dl_df = conv_dl_list.merge(cos_join, how = 'inner', on = ['COS','CITY'])
-dl_df = dl_list.merge(cos_join, how = 'inner', on = ['COS','CITY'])
+#dl_df = dl_list.merge(zm_create, how = 'inner', on = ['POS_ID','CITY'])
+dl_df = dl_list.merge(zm_create, how = 'inner', on = ['POS_ID','CITY'])
+print (dl_df)
 
 
 #Global Table AD Format
@@ -127,6 +127,7 @@ CONV_AD_ONLY.to_csv(ADEX_FILE, mode = 'a' ,sep=',', encoding='utf-8', index = No
 # Generate file for creating file zimbra
 #CONV_ZM = zm_create.astype('str').replace('\.0', '', regex=True)
 CONV_ZM = zm_create.astype('str').replace('\.0', '', regex=True)
+#print(CONV_ZM)
 
 # FORMAT CREATE ZIMBRA
 #zmfile = open(ZM_FILE,'w+')
@@ -149,30 +150,21 @@ df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header
 
 #------------------------------------- INSERT DB AMS
 #-- DB AMS
-engine = create_engine("mysql://root:paganini@localhost/homecredit")
-
-insertdb = pd.read_csv(IMPORT_DB)
-insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='replace')
+#engine = create_engine("mysql://root:paganini@localhost/homecredit")
+#insertdb = pd.read_csv(IMPORT_DB)
+#insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='replace')
 
 
 
 # ------------------------------------- SEND TO SSH
 # http://code.activestate.com/recipes/576810-copy-files-over-ssh-using-paramiko/
-hostname = '10.58.122.209' # remote hostname where SSH server is running
-port = 22
-username = 'root'
-#password = 'myssh-password'
-rsa_private_key = r"/home/paramikouser/.ssh/rsa_private_key"
+#try:
+#	connUser = 'root'
+#	connHost = '10.58.122.209' # remote hostname where SSH server is running
+#	connPath = '/tmp'
+#	ZMFILE = '/opt/output/adzimbra.csv'
+#	scp = subprocess.Popen(['scp', ZMFILE, '{}@{}:{}'.format(connUser, connHost, connPath)])
+#	print ("File success transfer to zimbra")
 
-dir_local='/home/paramikouser/local_data'
-dir_remote = "remote_machine_folder/subfolder"
-glob_pattern='*.*'
-
-def scp_to_server():
-    """ Securely copy the file to the server. """
-    ssh_client = paramiko.SSHClient()
-    ssh_client.load_system_host_keys()
-    ssh_client.connect("EXAMPLE.COM", username="USER_NAME", password="PASSWORD")
-
-    with scpclient.closing(scpclient.Write(ssh_client.get_transport(), "~/")) as scp:
-        scp.send_file("LOCAL_FILENAME", remote_filename="REMOTE_FILENAME")
+#except CalledProcessError:
+    #print('ERROR: Connection to host failed!')
