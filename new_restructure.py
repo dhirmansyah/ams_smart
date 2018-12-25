@@ -32,8 +32,6 @@ engine = create_engine("mysql://root:paganini@localhost/homecredit")
 query_check = "select nik,email from tbl_users"
 source_db = pd.read_sql(query_check, engine)
 source_db.columns=['EMP_NO','EMAIL']
-print(source_db)
-
 
 #Global Column MANDATORY
 df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','MANAGER','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','POS_ID','EMPLOYEE_NAME'], sep=',|;', engine='python')
@@ -43,14 +41,11 @@ dl_list = pd.read_csv(CATALOG,sep=',|;', engine='python').apply(lambda x: x.asty
 # Convert Distribution List to lowercase
 conv_dl_list = dl_list.applymap(lambda x: x.lower())
 
+# ------------- parsing process (data who already exist will skip) --------------------------
+### Validasi jika account sudah ada maka tidak di tampilkan 
 
-#common = pd.merge(dftest, source_db, left_on = 'EMP_NO', right_on = 'nik')
 common = df.merge(source_db,on=['EMP_NO'])
-print('-----------common-------------------------')
-print(common)
-
 df = df[(~df.EMP_NO.isin(common.EMP_NO))]
-print(df)
 
 
 ## Split email address to sAMAccountName and limit just 20 Char in there because of AD limitation
@@ -105,10 +100,6 @@ df['alias_domain']=df['USERNAME']+'@'+df['domain_name']
 df['ZFIRST_NAME']="'"+df['FIRST_NAME']+"'"
 df['ZLAST_NAME']="'"+df['LAST_NAME']+"'"
 df['Zphone']="'"+df.MOBILE_PHONE.astype('str')+"'"
-
-### Validasi jika account sudah ada maka tidak di tampilkan 
-
-
 
 # DECIDE Field by feature and Position
 AD_EXCHANGE = df.loc[(df.AD.str.lower() == 'y') & (df.EXCHANGE.str.lower() == 'y')]
@@ -167,9 +158,9 @@ df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
 
 #------------------------------------- INSERT DB AMS
 #-- DB AMS
-#df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE'])
-#insertdb = pd.read_csv(IMPORT_DB)
-#insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='replace')
+df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE'])
+insertdb = pd.read_csv(IMPORT_DB)
+insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='append')
 
 
 # ------------------------------------- SEND TO SSH and Email for result file
