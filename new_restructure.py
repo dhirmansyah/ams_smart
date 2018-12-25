@@ -18,7 +18,7 @@ from sqlalchemy import create_engine
 # Golbal Variable
 datenow=(time.strftime("%Y-%m-%d"))
 COS_LIST='/opt/automateams/var/cos_list.csv'
-DL_LIST='/opt/automateams/var/distribution_cos.csv'
+CATALOG='/opt/automateams/var/catalog.csv'
 filename=sys.argv[1]
 ADEX_FILE='/opt/output/adexchange-'+datenow+'.csv'
 ZM_FILE='/opt/output/adzimbra-'+datenow+'.csv'
@@ -29,28 +29,31 @@ engine = create_engine("mysql://root:paganini@localhost/homecredit")
 
 
 #dataframe database_check
-query_check = "select nik,upn,email,position,otrs_date_created from tbl_users"
+query_check = "select nik,email from tbl_users"
 source_db = pd.read_sql(query_check, engine)
-#print(source_db)
+source_db.columns=['EMP_NO','EMAIL']
+print(source_db)
 
-
-# Index COS file
-#cos_list = pd.read_csv(COS_LIST,sep=',|;', engine='python').apply(lambda x: x.astype(str).str.lower())
-
-# Index Distribution List file
-dl_list = pd.read_csv(DL_LIST,sep=',|;', engine='python').apply(lambda x: x.astype(str).str.lower())
-# Convert Distribution List to lowercase
-conv_dl_list = dl_list.applymap(lambda x: x.lower())
 
 #Global Column MANDATORY
 df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','MANAGER','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','POS_ID','EMPLOYEE_NAME'], sep=',|;', engine='python')
 
-#testdf = pd.concat(['df','source_db'],key['df','source_db'])
-testdf = pd.concat([source_db,df.],sort=True).drop_duplicates().reset_index(drop=True)
-print (testdf) 
+# Index Catalog Distribution List file
+dl_list = pd.read_csv(CATALOG,sep=',|;', engine='python').apply(lambda x: x.astype(str).str.lower())
+# Convert Distribution List to lowercase
+conv_dl_list = dl_list.applymap(lambda x: x.lower())
+
+
+#common = pd.merge(dftest, source_db, left_on = 'EMP_NO', right_on = 'nik')
+common = df.merge(source_db,on=['EMP_NO'])
+print('-----------common-------------------------')
+print(common)
+
+df = df[(~df.EMP_NO.isin(common.EMP_NO))]
+print(df)
+
 
 ## Split email address to sAMAccountName and limit just 20 Char in there because of AD limitation
-
 # Purpose 1 : split dari almat email dan di batasi 20 Char
 #sAMAccountName_field = df.EMAIL.str.split("@").str[0].str.slice(0, 20).str.lower()
 #df['sAMAccountName'] = sAMAccountName_field.str.slice(0, 20).str.lower()
@@ -164,9 +167,9 @@ df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
 
 #------------------------------------- INSERT DB AMS
 #-- DB AMS
-df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE'])
-insertdb = pd.read_csv(IMPORT_DB)
-insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='replace')
+#df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE'])
+#insertdb = pd.read_csv(IMPORT_DB)
+#insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='replace')
 
 
 # ------------------------------------- SEND TO SSH and Email for result file
