@@ -173,16 +173,5 @@ os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready re
 
 
 # -- send mail 
-#os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 
-#---------- validasi koneksi 
-#def is_connected(ZM_SVR):
-#	try:
-#		s = socket.create_connection((ZM_SVR, 22), 2)
-#		return True
-#	except:
-#		pass
-#	return False
-		#%timeit is_connected(ZM_SVR)
-
-	
