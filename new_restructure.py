@@ -52,9 +52,6 @@ validation_account.to_csv(ACCOUNT_EXIST,encoding='utf-8',sep=',', index = None, 
 # -- account not exist
 df = df[(~df.EMP_NO.isin(validation_account.EMP_NO))]
 
-#print (common)
-#print (df)
-
 ## Split email address to sAMAccountName and limit just 20 Char in there because of AD limitation
 # Purpose 1 : split dari almat email dan di batasi 20 Char
 #sAMAccountName_field = df.EMAIL.str.split("@").str[0].str.slice(0, 20).str.lower()
