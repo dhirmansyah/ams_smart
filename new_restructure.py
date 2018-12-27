@@ -23,8 +23,9 @@ filename=sys.argv[1]
 ADEX_FILE='/opt/output/adexchange-'+datenow+'.csv'
 ZM_FILE='/opt/output/adzimbra-'+datenow+'.csv'
 IMPORT_DB='/opt/output/importdb-'+datenow+'.csv'
+ACCOUNT_EXIST='/opt/output/account_exist-'+datenow+'.csv'
 ZM_SVR="10.58.122.209"
-#DB Engine
+#-- DB Engine
 engine = create_engine("mysql://root:paganini@localhost/homecredit")
 
 
@@ -44,9 +45,15 @@ conv_dl_list = dl_list.applymap(lambda x: x.lower())
 # ------------- parsing process (data who already exist will skip) --------------------------
 ### Validasi jika account sudah ada maka tidak di tampilkan 
 
-common = df.merge(source_db,on=['EMP_NO'])
-df = df[(~df.EMP_NO.isin(common.EMP_NO))]
+#-- account exist
+validation_account = df.merge(source_db,on=['EMP_NO'])
+validation_account.to_csv(ACCOUNT_EXIST,encoding='utf-8',sep=',', index = None, columns=['EMP_NO','EMPLOYEE_NAME','USERNAME','EMAIL_y','PASSWORD'])
 
+# -- account not exist
+df = df[(~df.EMP_NO.isin(validation_account.EMP_NO))]
+
+#print (common)
+#print (df)
 
 ## Split email address to sAMAccountName and limit just 20 Char in there because of AD limitation
 # Purpose 1 : split dari almat email dan di batasi 20 Char
@@ -127,6 +134,11 @@ CONV_AD_EXCHANGE.to_csv(ADEX_FILE, sep=',', encoding='utf-8', index = None, head
 CONV_AD_ONLY = AD_ZIMBRA.astype('str').replace('\.0', '', regex=True)
 CONV_AD_ONLY.to_csv(ADEX_FILE, mode = 'a' ,sep=',', encoding='utf-8', index = None, header=None,columns=['EMP_NO','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','sAMAccountName','POSITION','CITY','WORK_LOCATION','COST_CENTER','EXCHANGE'])
 
+# Read exchange file
+exchangefile = pd.read_csv(ADEX_FILE)
+#print (exchangefile)
+
+
 # EXPORT to csv create zimbra
 # Generate file for creating file zimbra
 CONV_ZM_AD = AD_ZIMBRA.astype('str').replace('\.0', '', regex=True)
@@ -154,24 +166,47 @@ tbl_db=['nik','username','upn','password','f_name','l_name','d_name','email','po
 df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
 
 
+# -------------------------------------------------------------------------------- PROCESS FILES, NOTIF AND INSERT DB ---------------------------------------------------------------------------
 
+# -- Print and notif if data exis will send to email
+if not validation_account.empty:
+	print('\nPlease check email, there have some data who has been exist in Database\n')
+	os.system("echo 'Hi Team, \n\nWe send you file Account who exist in Database and will not process to created. Please check it. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif Data Exist - AMS "+datenow+"' -a "+ACCOUNT_EXIST+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+else:
+	print('\nNo file exist, All data will process...\n')
 
 #------------------------------------- INSERT DB AMS
 #-- DB AMS
-df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE'])
-insertdb = pd.read_csv(IMPORT_DB)
-insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='append')
+if not df.empty:
+	df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE'])
+	insertdb = pd.read_csv(IMPORT_DB)
+	insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='append')
+	print('\nImport DB Success......\n')
+else:
+	print('\nNo Import DB, because data is empty...\n')
+
 
 
 # ------------------------------------- SEND TO SSH and Email for result file
-# send file zimbra to server zimbra - SSH
-os.system("rsync -avh " +ZM_FILE+ " root@"+ZM_SVR+":/tmp/")
-# archive file before remove 
-os.system("rsync -avh " +ZM_FILE+ " /opt/output/history/")
-# remove zimbra file 
-os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
+with open(ZM_FILE) as zimbra_file:
+	first = zimbra_file.read(1)
+	if not first:
+		print('\nNot sending any Files, zimbra file is empty..\n')
+	else:
+		# send file zimbra to server zimbra - SSH
+		os.system("rsync -avh " +ZM_FILE+ " root@"+ZM_SVR+":/tmp/")
+		# archive file before remove 
+		os.system("rsync -avh " +ZM_FILE+ " /opt/output/history/")
+		# remove zimbra file 
+		os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
+		print('\nZimbra File already send to remote server\n')
 
+if not exchangefile.empty:
+	print('\nExchange file process, Please check your Email.....\n')
+	# -- send mail 
+	os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 
-# -- send mail 
-os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+else:
+	print ('\nExhcange file is empty, File Not Process....\n')
+
 
