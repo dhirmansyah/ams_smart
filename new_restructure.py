@@ -170,10 +170,10 @@ df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
 
 # -- Print and notif if data exis will send to email
 if not validation_account.empty:
-	print('\nPlease check email, there have some data who has been exist in Database\n')
-	os.system("echo 'Hi Team, \n\nWe send you file Account who exist in Database and will not process to created. Please check it. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif Data Exist - AMS "+datenow+"' -a "+ACCOUNT_EXIST+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+	print('\nFile Exist:\nPlease check email, there have some data who has been exist in Database\n')
+	#os.system("echo 'Hi Team, \n\nWe send you file Account who exist in Database and will not process to created. Please check it. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif Data Exist - AMS "+datenow+"' -a "+ACCOUNT_EXIST+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 else:
-	print('\nNo file exist, All data will process...\n')
+	print('\nFile Exist:\nNo file exist, All data will process...\n')
 
 #------------------------------------- INSERT DB AMS
 #-- DB AMS
@@ -181,9 +181,9 @@ if not df.empty:
 	df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE'])
 	insertdb = pd.read_csv(IMPORT_DB)
 	insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='append')
-	print('\nImport DB Success......\n')
+	print('\nInsert DB:\nImport DB Success......\n')
 else:
-	print('\nNo Import DB, because data is empty...\n')
+	print('\nInsert DB:\nNo Import DB, because data is empty...\n')
 
 
 
@@ -191,7 +191,7 @@ else:
 with open(ZM_FILE) as zimbra_file:
 	first = zimbra_file.read(1)
 	if not first:
-		print('\nNot sending any Files, zimbra file is empty..\n')
+		print('\nZimbra Process:\nNot sending any Files, zimbra file is empty..\n')
 	else:
 		# send file zimbra to server zimbra - SSH
 		os.system("rsync -avh " +ZM_FILE+ " root@"+ZM_SVR+":/tmp/")
@@ -199,14 +199,14 @@ with open(ZM_FILE) as zimbra_file:
 		os.system("rsync -avh " +ZM_FILE+ " /opt/output/history/")
 		# remove zimbra file 
 		os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
-		print('\nZimbra File already send to remote server\n')
+		print('\nZimbra Process:\nZimbra File already send to remote server\n')
 
 if not exchangefile.empty:
-	print('\nExchange file process, Please check your Email.....\n')
+	print('\nAD and Exchange Process :\nExchange file process, Please check your Email.....\n')
 	# -- send mail 
 	os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 
 else:
-	print ('\nExhcange file is empty, File Not Process....\n')
+	print ('\nAD and Exchange Process :\nExhcange file is empty, File Not Process....\n')
 
 
