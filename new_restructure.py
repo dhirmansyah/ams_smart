@@ -46,11 +46,11 @@ conv_dl_list = dl_list.applymap(lambda x: x.lower())
 ### Validasi jika account sudah ada maka tidak di tampilkan 
 
 #-- account exist
-validation_account = df.merge(source_db,on=['EMP_NO'])
-validation_account.to_csv(ACCOUNT_EXIST,encoding='utf-8',sep=',', index = None, columns=['EMP_NO','EMPLOYEE_NAME','USERNAME','EMAIL_y','PASSWORD'])
+validation_account = df[(df.EMP_NO.isin(source_db.EMP_NO))]
+validation_account.to_csv(ACCOUNT_EXIST,encoding='utf-8',sep=',', index = None, columns=['EMP_NO','EMPLOYEE_NAME','USERNAME','EMAIL','PASSWORD'])
 
 # -- account not exist
-df = df[(~df.EMP_NO.isin(validation_account.EMP_NO))]
+df = df[(~df.EMP_NO.isin(source_db.EMP_NO))]
 
 ## Split email address to sAMAccountName and limit just 20 Char in there because of AD limitation
 # Purpose 1 : split dari almat email dan di batasi 20 Char
@@ -168,7 +168,7 @@ df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
 # -- Print and notif if data exis will send to email
 if not validation_account.empty:
 	print('\nFile Exist:\nPlease check email, there have some data who has been exist in Database\n')
-	#os.system("echo 'Hi Team, \n\nWe send you file Account who exist in Database and will not process to created. Please check it. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif Data Exist - AMS "+datenow+"' -a "+ACCOUNT_EXIST+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+	os.system("echo 'Hi Team, \n\nWe send you file Account who exist in Database and will not process to created. Please check it. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif Data Exist - AMS "+datenow+"' -a "+ACCOUNT_EXIST+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 else:
 	print('\nFile Exist:\nNo file exist, All data will process...\n')
 
