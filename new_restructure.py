@@ -160,7 +160,8 @@ zm_main.to_csv(ZM_FILE,encoding='utf-8',sep=' ', index = None, header=None, mode
 tbl_db=['nik','username','upn','password','f_name','l_name','d_name','email','position','department','office','status_employee','status_email','date_created','otrs_date_created','id_lync_stts','id_mobile_stts','mobile_phone']
 
 #add domain @HCG.HOMECREDIT.NET
-df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
+#df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
+df['sAMAccountName_db']=df.sAMAccountName+'@hcg.homecredit.net'
 
 
 # -------------------------------------------------------------------------------- PROCESS FILES, NOTIF AND INSERT DB ---------------------------------------------------------------------------
