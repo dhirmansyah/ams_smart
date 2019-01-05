@@ -170,7 +170,7 @@ df['sAMAccountName_db']=df.sAMAccountName+'@hcg.homecredit.net'
 # -- Print and notif if data exis will send to email
 if not validation_account.empty:
 	print('\nFile Exist:\nPlease check email, there have some data who has been exist in Database\n')
-	#os.system("echo 'Hi Team, \n\nWe send you file Account who exist in Database and will not process to created. Please check it. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif Data Exist - AMS "+datenow+"' -a "+ACCOUNT_EXIST+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+	os.system("echo 'Hi Team, \n\nWe send you file Account who exist in Database and will not process to created. Please check it. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif Data Exist - AMS "+datenow+"' -a "+ACCOUNT_EXIST+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 else:
 	print('\nFile Exist:\nNo file exist, All data will process...\n')
 
@@ -203,7 +203,7 @@ with open(ZM_FILE) as zimbra_file:
 if not exchangefile.empty:
 	print('\nAD and Exchange Process :\nExchange file process, Please check your Email.....\n')
 	# -- send mail 
-	#os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+	os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 
 else:
 	print ('\nAD and Exchange Process :\nExhcange file is empty, File Not Process....\n')
