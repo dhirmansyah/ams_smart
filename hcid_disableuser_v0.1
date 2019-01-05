@@ -17,8 +17,6 @@ from sqlalchemy import create_engine
 
 # Golbal Variable
 datenow=(time.strftime("%Y-%m-%d"))
-COS_LIST='/opt/automateams/var/cos_list.csv'
-CATALOG='/opt/automateams/var/catalog.csv'
 filename=sys.argv[1]
 ADEX_FILE='/opt/output/adexchange-'+datenow+'.csv'
 ZM_FILE='/opt/output/adzimbra-'+datenow+'.csv'
@@ -29,10 +27,10 @@ ZM_SVR="10.58.122.209"
 engine = create_engine("mysql://root:paganini@localhost/homecredit")
 
 
-#dataframe database_check
-query_check = "select nik,email from tbl_users"
-source_db = pd.read_sql(query_check, engine)
-source_db.columns=['EMP_NO','EMAIL']
+#dataframe database_check_disable
+query_disable = "select nik,d_name,upn,email,ad_feature,date_closed from tbl_users where status_employee = 1 and status_email = 1 and date_closed + INTERVAL 30 DAY <= NOW();"
+source_db = pd.read_sql(query_disable, engine)
+source_db.columns=['EmployeeNo','DisplayName','UserLogonName','ad_feature','email','date_closed']
 
 #Global Column MANDATORY
 df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','MANAGER','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','POS_ID','EMPLOYEE_NAME'], sep=',|;', engine='python')
