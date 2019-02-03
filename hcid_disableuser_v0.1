@@ -53,8 +53,8 @@ except :
 
 
 #FILE STORE
-ADEX_FILE=OUT_ADEX +'/'+'ad_disable-'+datenow+'.csv'
-ZM_FILE=OUT_ZM +'/'+'zimbra_disable-'+datenow+'.csv'
+ADEX_FILE=OUT_ADEX+'ad_disable-'+datenow+'.csv'
+ZM_FILE=OUT_ZM+'zimbra_disable-'+datenow+'.csv'
 IMPORT_DB=OUT_DB + dirname+'/'+'importdb_disable-'+datenow+'.csv'
 
 
@@ -62,9 +62,7 @@ IMPORT_DB=OUT_DB + dirname+'/'+'importdb_disable-'+datenow+'.csv'
 engine2 = create_engine("mysql://root:paganini@localhost/homecredit")
 
 #dataframe database_check_disable
-#query_disable = 'select nik,d_name,upn,email,ad_feature,date_closed from tbl_users where status_employee = 1 and status_email = 1 and date_closed + NOW()'
 query_disable = 'select nik,d_name,upn,email,ad_feature,date_closed from tbl_users where status_employee = 1 and status_email = 1 and DATE(date_closed) = CURDATE();'
-#query_disable = "select nik,email from tbl_users"
 source_db = pd.read_sql(query_disable, engine2)
 source_db.columns=['EmployeeNo','DisplayName','UPN','email','ad_feature','date_closed']
 source_db['UserLogonName'] = source_db.UPN.str.split("@").str[0]
@@ -115,12 +113,13 @@ with open(ZM_FILE) as zimbra_file:
 		os.system("cp -r " +ZM_FILE+" "+ARCHIVE_ZM_TODAY)
 		# ----------- Notification to user
 		zm_file = pd.read_csv(ZM_FILE)
-		if not zm_file.empty:
+		print(zm_file)
+		if not zm_file.empty or os.stat(ZM_FILE).st_size > 0:
         		# -- send mail
         		os.system("echo 'Hi Team, \n\nWe could inform you we will disable account automatically based on attachment, please be aware and change in ams if this user still active. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif disable Zimbra account "+datenow+"' -a "+ZM_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 
 		else:
-		        print ('\nAD and Exchange Process :\nAD file is empty, File Not Process....\n')
+		        print ('\nZimbra :\nZimbra file is empty, File Not Process....\n')
 
 		# remove zimbra file 
 		os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
