@@ -62,7 +62,8 @@ IMPORT_DB=OUT_DB + dirname+'/'+'importdb_disable-'+datenow+'.csv'
 engine2 = create_engine("mysql://root:paganini@localhost/homecredit")
 
 #dataframe database_check_disable
-query_disable = 'select nik,d_name,upn,email,ad_feature,date_closed from tbl_users where status_employee = 1 and status_email = 1 and date_closed + NOW()'
+#query_disable = 'select nik,d_name,upn,email,ad_feature,date_closed from tbl_users where status_employee = 1 and status_email = 1 and date_closed + NOW()'
+query_disable = 'select nik,d_name,upn,email,ad_feature,date_closed from tbl_users where status_employee = 1 and status_email = 1 and DATE(date_closed) = CURDATE();'
 #query_disable = "select nik,email from tbl_users"
 source_db = pd.read_sql(query_disable, engine2)
 source_db.columns=['EmployeeNo','DisplayName','UPN','email','ad_feature','date_closed']
