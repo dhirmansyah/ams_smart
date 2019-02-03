@@ -35,18 +35,6 @@ ZM_SVR="10.58.122.209"
 # -------------------- create folder every day
 try :
         # create directory in each OUT path
-        os.mkdir(OUT_ADEX+dirname)
-except :
-        print("Path Created")
-
-try :
-        # create directory in each OUT path
-        os.mkdir(OUT_ZM+dirname)
-except :
-        print("Path Created")
-
-try :
-        # create directory in each OUT path
         os.mkdir(OUT_DB+dirname)
 except :
         print("Path Created")
@@ -65,8 +53,8 @@ except :
 
 
 #FILE STORE
-ADEX_FILE=OUT_ADEX + dirname+'/'+'ad_disable-'+datenow+'.csv'
-ZM_FILE=OUT_ZM + dirname+'/'+'zimbra_disable-'+datenow+'.csv'
+ADEX_FILE=OUT_ADEX +'/'+'ad_disable-'+datenow+'.csv'
+ZM_FILE=OUT_ZM +'/'+'zimbra_disable-'+datenow+'.csv'
 IMPORT_DB=OUT_DB + dirname+'/'+'importdb_disable-'+datenow+'.csv'
 
 
