@@ -112,6 +112,15 @@ with open(ZM_FILE) as zimbra_file:
 		os.system("rsync -avh " +ZM_FILE+ " zimbra@"+ZM_SVR+":/opt/zimbra/script_zimbra/smart_ams/run/disable/")
 		# archive file before remove 
 		os.system("cp -r " +ZM_FILE+" "+ARCHIVE_ZM_TODAY)
+		# ----------- Notification to user
+		zm_file = pd.read_csv(ZM_FILE)
+		if not zm_file.empty:
+        		# -- send mail
+        		os.system("echo 'Hi Team, \n\nWe could inform you we will disable account automatically based on attachment, please be aware and change in ams if this user still active. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif disable Zimbra account "+datenow+"' -a "+ZM_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+
+		else:
+		        print ('\nAD and Exchange Process :\nAD file is empty, File Not Process....\n')
+
 		# remove zimbra file 
 		os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
 		print('\nZimbra Proceed :\nZimbra File already send to remote server\n')
@@ -126,19 +135,15 @@ with open(ADEX_FILE) as adex_file:
 		# Move to FIX file
 		os.system("rm -rf "+OUT_ADEX_FIX+"/*.csv"+ ";echo 'file success and file aready removed..!'")
 		os.system("cp -r " +ADEX_FILE+" "+OUT_ADEX_FIX)
+		## -- notification auto disable everyday
+		adex_file = pd.read_csv(ADEX_FILE)
+		if not adex_file.empty:
+			# -- send mail 
+			os.system("echo 'Hi Team, \n\nWe could inform you we will disable account automatically based on attachment, please be aware and change in ams if this user still active. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'Notif disable AD Account "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+
+		else:
+			print ('\nAD and Exchange Process :\nAD file is empty, File Not Process....\n')
 		
 		# archive file before remove 
 		os.system("cp -r " +ADEX_FILE+" "+ARCHIVE_AD_TODAY)
-		# remove zimbra file 
-		#os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
-		#print('\nZimbra Proceed :\nZimbra File already send to remote server\n')
-
-#if not exchangefile.empty:
-#	print('\nAD and Exchange Process :\nExchange file process, Please check your Email.....\n')
-	# -- send mail 
-	#os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
-
-#else:
-#	print ('\nAD and Exchange Process :\nExhcange file is empty, File Not Process....\n')
-
 
