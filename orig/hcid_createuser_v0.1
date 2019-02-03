@@ -14,76 +14,17 @@ import smtplib
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
-# create directory everyday + global variable
+
+# Golbal Variable
+datenow=(time.strftime("%Y-%m-%d:%T"))
 COS_LIST='/opt/ams_smart/var/cos_list.csv'
 CATALOG='/opt/ams_smart/var/catalog.csv'
-datenow=(time.strftime("%Y-%m-%d:%T"))
-dirname=(time.strftime("%Y-%m-%d"))
-OUT_ADEX='/SMART/CREATE/OUT/AD_STG/'
-OUT_ADEX_FIX='/SMART/CREATE/OUT/AD_FIX/'
-OUT_ZM='/SMART/CREATE/OUT/ZM_STG/'
-OUT_DB='/SMART/CREATE/OUT/DB_IMPORT/'
-ERR_INFO='/SMART/CREATE/OUT/VALIDATION/'
-ARCHIVE_AD='/SMART/CREATE/ARCHIVE/AD/'
-ARCHIVE_ZM='/SMART/CREATE/ARCHIVE/ZM/'
-ARCHIVE_ZM_TODAY=ARCHIVE_ZM+dirname+'/'
 filename=sys.argv[1]
+ADEX_FILE='/SMART/OUT/AD_STG/adexchange-'+datenow+'.csv'
+ZM_FILE='/SMART/OUT/ZM_STG/adzimbra-'+datenow+'.csv'
+IMPORT_DB='/SMART/OUT/DB_IMPORT/importdb-'+datenow+'.csv'
+ACCOUNT_EXIST='/SMART/OUT/VALIDATION/account_exist-'+datenow+'.csv'
 ZM_SVR="10.58.122.209"
-
-
-# -------------------- create folder every day
-try :
-	# create directory in each OUT path
-	os.mkdir(OUT_ADEX+dirname)
-except :
-	print("Path Created")
-
-try :
-	# create directory in each OUT path
-	os.mkdir(OUT_ZM+dirname)
-except :
-	print("Path Created")
-
-try :
-	# create directory in each OUT path
-	os.mkdir(OUT_DB+dirname)
-except :
-	print("Path Created")
-
-try :
-	# create directory in each OUT path
-	os.mkdir(ERR_INFO+dirname)
-except :
-	print("Path Created")
-
-try :
-	# create directory in each OUT path
-	os.mkdir(OUT_ADEX_FIX+dirname)
-except :
-	print("Path Created")
-
-try :
-        # create directory in each OUT path
-        os.mkdir(ARCHIVE_AD+dirname)
-except :
-        print("Path Created")
-
-try :
-        # create directory in each OUT path
-        os.mkdir(ARCHIVE_ZM+dirname)
-except :
-        print("Path Created")
-
-
-
-
-# FILE realtime
-ADEX_FILE=OUT_ADEX + dirname+'/'+'adexchange-'+datenow+'.csv'
-ZM_FILE=OUT_ZM + dirname+'/'+'adzimbra-'+datenow+'.csv'
-IMPORT_DB=OUT_DB + dirname+'/'+'importdb-'+datenow+'.csv'
-ACCOUNT_EXIST=ERR_INFO + dirname+'/'+'account_exist-'+datenow+'.csv'
-
-
 #-- DB Engine
 engine = create_engine("mysql://root:paganini@localhost/homecredit")
 
@@ -253,9 +194,9 @@ with open(ZM_FILE) as zimbra_file:
 		print('\nZimbra Process:\nNot sending any Files, zimbra file is empty..\n')
 	else:
 		# send file zimbra to server zimbra - SSH
-		os.system("rsync -avh " +ZM_FILE+ " zimbra@"+ZM_SVR+":/opt/zimbra/script_zimbra/smart_ams/run/create/")
+		os.system("rsync -avh " +ZM_FILE+ " root@"+ZM_SVR+":/tmp/")
 		# archive file before remove 
-		os.system("cp -rf " +ZM_FILE+" "+ARCHIVE_ZM_TODAY)
+		os.system("cp -rf " +ZM_FILE+ "/SMART/ARCHIVE/ZM/")
 		# remove zimbra file 
 		os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
 		print('\nZimbra Process:\nZimbra File already send to remote server\n')
@@ -263,7 +204,7 @@ with open(ZM_FILE) as zimbra_file:
 if not exchangefile.empty:
 	print('\nAD and Exchange Process :\nExchange file process, Please check your Email.....\n')
 	# -- send mail 
-	os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'smartams@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+	os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 
 else:
 	print ('\nAD and Exchange Process :\nExhcange file is empty, File Not Process....\n')

@@ -7,28 +7,76 @@ import sys
 import random
 import scpclient
 import md5
+import subprocess
 import os
 import socket
 import smtplib
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
+#pd.show_versions()
+
 
 # Golbal Variable
 datenow=(time.strftime("%Y-%m-%d"))
-#filename=sys.argv[1]
-ADEX_FILE='/opt/output/ad_disable-'+datenow+'.csv'
-ZM_FILE='/opt/output/zimbra_disable-'+datenow+'.csv'
-IMPORT_DB='/opt/output/importdb_disable-'+datenow+'.csv'
-#ACCOUNT_EXIST='/opt/output/account_exist-'+datenow+'.csv'
+dirname=(time.strftime("%Y-%m-%d"))
+OUT_ADEX='/SMART/DISABLE/OUT/AD_CLOSED/'
+OUT_ADEX_FIX='/SMART/DISABLE/OUT/AD_FIX/'
+OUT_ZM='/SMART/DISABLE/OUT/ZM_CLOSED/'
+OUT_DB='/SMART/DISABLE/OUT/DB_COMPARE/'
+ARCHIVE_AD='/SMART/DISABLE/ARCHIVE/AD/'
+ARCHIVE_ZM='/SMART/DISABLE/ARCHIVE/ZM/'
+ARCHIVE_ZM_TODAY=ARCHIVE_ZM+dirname+'/'
+ARCHIVE_AD_TODAY=ARCHIVE_AD+dirname+'/'
 ZM_SVR="10.58.122.209"
-#-- DB Engine
-engine = create_engine("mysql://root:paganini@localhost/homecredit")
 
+
+
+# -------------------- create folder every day
+try :
+        # create directory in each OUT path
+        os.mkdir(OUT_ADEX+dirname)
+except :
+        print("Path Created")
+
+try :
+        # create directory in each OUT path
+        os.mkdir(OUT_ZM+dirname)
+except :
+        print("Path Created")
+
+try :
+        # create directory in each OUT path
+        os.mkdir(OUT_DB+dirname)
+except :
+        print("Path Created")
+
+try :
+        # create directory in each OUT path
+        os.mkdir(ARCHIVE_AD+dirname)
+except :
+        print("Path Created")
+
+try :
+        # create directory in each OUT path
+        os.mkdir(ARCHIVE_ZM+dirname)
+except :
+        print("Path Created")
+
+
+#FILE STORE
+ADEX_FILE=OUT_ADEX + dirname+'/'+'ad_disable-'+datenow+'.csv'
+ZM_FILE=OUT_ZM + dirname+'/'+'zimbra_disable-'+datenow+'.csv'
+IMPORT_DB=OUT_DB + dirname+'/'+'importdb_disable-'+datenow+'.csv'
+
+
+#-- DB Engine
+engine2 = create_engine("mysql://root:paganini@localhost/homecredit")
 
 #dataframe database_check_disable
-query_disable = "select nik,d_name,upn,email,ad_feature,date_closed from tbl_users where status_employee = 1 and status_email = 1 and date_closed + NOW();"
-source_db = pd.read_sql(query_disable, engine)
+query_disable = 'select nik,d_name,upn,email,ad_feature,date_closed from tbl_users where status_employee = 1 and status_email = 1 and date_closed + NOW()'
+#query_disable = "select nik,email from tbl_users"
+source_db = pd.read_sql(query_disable, engine2)
 source_db.columns=['EmployeeNo','DisplayName','UPN','email','ad_feature','date_closed']
 source_db['UserLogonName'] = source_db.UPN.str.split("@").str[0]
 
@@ -47,10 +95,7 @@ source_db['closed']='closed'
 # SPESIFY ACCOUNT BASED ON SYSTEM
 AD = source_db.loc[(source_db.EmployeeNo.notnull()) & (source_db.ad_feature == "y")]
 ZIMBRA = source_db.loc[(source_db.email.str.contains('ext.homecredit.co.id'))]
-print (AD)
 
-
-print (ZIMBRA)
 
 
 # EXPORT to csv create zimbra
@@ -76,12 +121,29 @@ with open(ZM_FILE) as zimbra_file:
 		print('\nZimbra Not Process:\nNot sending any Files, zimbra file is empty..\n')
 	else:
 		# send file zimbra to server zimbra - SSH
-		os.system("rsync -avh " +ZM_FILE+ " root@"+ZM_SVR+":/tmp/")
+		os.system("rsync -avh " +ZM_FILE+ " zimbra@"+ZM_SVR+":/opt/zimbra/script_zimbra/smart_ams/run/disable/")
 		# archive file before remove 
-		os.system("rsync -avh " +ZM_FILE+ " /opt/output/history/")
+		os.system("cp -r " +ZM_FILE+" "+ARCHIVE_ZM_TODAY)
 		# remove zimbra file 
 		os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
 		print('\nZimbra Proceed :\nZimbra File already send to remote server\n')
+
+with open(ADEX_FILE) as adex_file:
+	first = adex_file.read(1)
+	if not first:
+		print('\nAdex Not Process:\nNot sending any Files, zimbra file is empty..\n')
+	else:
+		# send file zimbra to server zimbra - SSH
+		#os.system("rsync -avh " +ZM_FILE+ " zimbra@"+ZM_SVR+":/opt/zimbra/script_zimbra/smart_ams/run/disable/")
+		# Move to FIX file
+		os.system("rm -rf "+OUT_ADEX_FIX+"/*.csv"+ ";echo 'file success and file aready removed..!'")
+		os.system("cp -r " +ADEX_FILE+" "+OUT_ADEX_FIX)
+		
+		# archive file before remove 
+		os.system("cp -r " +ADEX_FILE+" "+ARCHIVE_AD_TODAY)
+		# remove zimbra file 
+		#os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
+		#print('\nZimbra Proceed :\nZimbra File already send to remote server\n')
 
 #if not exchangefile.empty:
 #	print('\nAD and Exchange Process :\nExchange file process, Please check your Email.....\n')

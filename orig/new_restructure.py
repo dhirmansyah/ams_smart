@@ -14,76 +14,17 @@ import smtplib
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
-# create directory everyday + global variable
-COS_LIST='/opt/ams_smart/var/cos_list.csv'
-CATALOG='/opt/ams_smart/var/catalog.csv'
-datenow=(time.strftime("%Y-%m-%d:%T"))
-dirname=(time.strftime("%Y-%m-%d"))
-OUT_ADEX='/SMART/CREATE/OUT/AD_STG/'
-OUT_ADEX_FIX='/SMART/CREATE/OUT/AD_FIX/'
-OUT_ZM='/SMART/CREATE/OUT/ZM_STG/'
-OUT_DB='/SMART/CREATE/OUT/DB_IMPORT/'
-ERR_INFO='/SMART/CREATE/OUT/VALIDATION/'
-ARCHIVE_AD='/SMART/CREATE/ARCHIVE/AD/'
-ARCHIVE_ZM='/SMART/CREATE/ARCHIVE/ZM/'
-ARCHIVE_ZM_TODAY=ARCHIVE_ZM+dirname+'/'
+
+# Golbal Variable
+datenow=(time.strftime("%Y-%m-%d"))
+COS_LIST='/opt/automateams/var/cos_list.csv'
+CATALOG='/opt/automateams/var/catalog.csv'
 filename=sys.argv[1]
+ADEX_FILE='/opt/output/adexchange-'+datenow+'.csv'
+ZM_FILE='/opt/output/adzimbra-'+datenow+'.csv'
+IMPORT_DB='/opt/output/importdb-'+datenow+'.csv'
+ACCOUNT_EXIST='/opt/output/account_exist-'+datenow+'.csv'
 ZM_SVR="10.58.122.209"
-
-
-# -------------------- create folder every day
-try :
-	# create directory in each OUT path
-	os.mkdir(OUT_ADEX+dirname)
-except :
-	print("Path Created")
-
-try :
-	# create directory in each OUT path
-	os.mkdir(OUT_ZM+dirname)
-except :
-	print("Path Created")
-
-try :
-	# create directory in each OUT path
-	os.mkdir(OUT_DB+dirname)
-except :
-	print("Path Created")
-
-try :
-	# create directory in each OUT path
-	os.mkdir(ERR_INFO+dirname)
-except :
-	print("Path Created")
-
-try :
-	# create directory in each OUT path
-	os.mkdir(OUT_ADEX_FIX+dirname)
-except :
-	print("Path Created")
-
-try :
-        # create directory in each OUT path
-        os.mkdir(ARCHIVE_AD+dirname)
-except :
-        print("Path Created")
-
-try :
-        # create directory in each OUT path
-        os.mkdir(ARCHIVE_ZM+dirname)
-except :
-        print("Path Created")
-
-
-
-
-# FILE realtime
-ADEX_FILE=OUT_ADEX + dirname+'/'+'adexchange-'+datenow+'.csv'
-ZM_FILE=OUT_ZM + dirname+'/'+'adzimbra-'+datenow+'.csv'
-IMPORT_DB=OUT_DB + dirname+'/'+'importdb-'+datenow+'.csv'
-ACCOUNT_EXIST=ERR_INFO + dirname+'/'+'account_exist-'+datenow+'.csv'
-
-
 #-- DB Engine
 engine = create_engine("mysql://root:paganini@localhost/homecredit")
 
@@ -94,7 +35,7 @@ source_db = pd.read_sql(query_check, engine)
 source_db.columns=['EMP_NO','EMAIL']
 
 #Global Column MANDATORY
-df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','POS_ID','EMPLOYEE_NAME','SAMACCOUNTNAME'], sep=None, engine='python')
+df = pd.read_csv(filename, usecols=['EMP_NO','USERNAME','FIRST_NAME','LAST_NAME','EMAIL','AD','EXCHANGE','MANAGER','POSITION','CITY','SUPERVISOR','PASSWORD','WORK_LOCATION','COST_CENTER','MOBILE_PHONE','TICKET','POS_ID','EMPLOYEE_NAME'], sep=',|;', engine='python')
 
 # Index Catalog Distribution List file
 dl_list = pd.read_csv(CATALOG,sep=',|;', engine='python').apply(lambda x: x.astype(str).str.lower())
@@ -120,10 +61,9 @@ df = df[(~df.EMP_NO.isin(source_db.EMP_NO))]
 # ------------- Modif Kolom AD  / remove special char-------------------------------------
 # Purpose 2 : gabung dari FNAME(1 char) + LNAME
 
-#sAMAccountName_fname = df.FIRST_NAME.str.slice(0, 1).str.lower().str.replace(",","").str.replace("-","").str.replace("\'","")
-#sAMAccountName_lname = df.LAST_NAME.str.slice(0, 18).str.lower().str.replace(",","").str.replace("-","").str.replace("\'","")
-#df['sAMAccountName'] = sAMAccountName_fname+'.'+sAMAccountName_lname
-df['SAMACCOUNTNAME'] = df.SAMACCOUNTNAME.str.lower()
+sAMAccountName_fname = df.FIRST_NAME.str.slice(0, 1).str.lower().str.replace(",","").str.replace("-","").str.replace("\'","")
+sAMAccountName_lname = df.LAST_NAME.str.slice(0, 18).str.lower().str.replace(",","").str.replace("-","").str.replace("\'","")
+df['sAMAccountName'] = sAMAccountName_fname+'.'+sAMAccountName_lname
 #----
 
 df['FIRST_NAME'] = df.FIRST_NAME.str.replace(',','').str.replace("-","").str.replace("\'","")
@@ -182,15 +122,15 @@ zm_main = conv_dl_list.merge(zm_create, how = 'inner', on = ['POS_ID','CITY'])
 
 
 #Main Table AD Format
-tbl_adex=['EmployeeNo','FirstName','LastName','DisplayName','UserLogonName','JobTitle','City','Office','Department','EnableMailbox','Manager']
+tbl_adex=['EmployeeNo','FirstName','LastName','DisplayName','UserLogonName','JobTitle','City','Office','Department','EnableMailbox']
 
 # Export to csv Untuk AD format dengan Exchange
 CONV_AD_EXCHANGE = AD_EXCHANGE.astype('str').replace('\.0', '', regex=True)
-CONV_AD_EXCHANGE.to_csv(ADEX_FILE, sep=',', encoding='utf-8', index = None, header=tbl_adex,columns=['EMP_NO','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','SAMACCOUNTNAME','POSITION','CITY','WORK_LOCATION','COST_CENTER','EXCHANGE','SUPERVISOR'])
+CONV_AD_EXCHANGE.to_csv(ADEX_FILE, sep=',', encoding='utf-8', index = None, header=tbl_adex,columns=['EMP_NO','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','sAMAccountName','POSITION','CITY','WORK_LOCATION','COST_CENTER','EXCHANGE'])
 
 # EXPORT TO CSV FOR untuk  AD_ONLY
 CONV_AD_ONLY = AD_ZIMBRA.astype('str').replace('\.0', '', regex=True)
-CONV_AD_ONLY.to_csv(ADEX_FILE, mode = 'a' ,sep=',', encoding='utf-8', index = None, header=None,columns=['EMP_NO','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','SAMACCOUNTNAME','POSITION','CITY','WORK_LOCATION','COST_CENTER','EXCHANGE','SUPERVISOR'])
+CONV_AD_ONLY.to_csv(ADEX_FILE, mode = 'a' ,sep=',', encoding='utf-8', index = None, header=None,columns=['EMP_NO','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','sAMAccountName','POSITION','CITY','WORK_LOCATION','COST_CENTER','EXCHANGE'])
 
 # Read exchange file
 exchangefile = pd.read_csv(ADEX_FILE)
@@ -222,7 +162,7 @@ tbl_db=['nik','username','upn','password','f_name','l_name','d_name','email','po
 
 #add domain @HCG.HOMECREDIT.NET
 #df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
-df['sAMAccountName_db']=df.SAMACCOUNTNAME+'@hcg.homecredit.net'
+df['sAMAccountName_db']=df.sAMAccountName+'@hcg.homecredit.net'
 
 
 # -------------------------------------------------------------------------------- PROCESS FILES, NOTIF AND INSERT DB ---------------------------------------------------------------------------
@@ -253,9 +193,9 @@ with open(ZM_FILE) as zimbra_file:
 		print('\nZimbra Process:\nNot sending any Files, zimbra file is empty..\n')
 	else:
 		# send file zimbra to server zimbra - SSH
-		os.system("rsync -avh " +ZM_FILE+ " zimbra@"+ZM_SVR+":/opt/zimbra/script_zimbra/smart_ams/run/create/")
+		os.system("rsync -avh " +ZM_FILE+ " root@"+ZM_SVR+":/tmp/")
 		# archive file before remove 
-		os.system("cp -rf " +ZM_FILE+" "+ARCHIVE_ZM_TODAY)
+		os.system("rsync -avh " +ZM_FILE+ " /opt/output/history/")
 		# remove zimbra file 
 		os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
 		print('\nZimbra Process:\nZimbra File already send to remote server\n')
@@ -263,7 +203,7 @@ with open(ZM_FILE) as zimbra_file:
 if not exchangefile.empty:
 	print('\nAD and Exchange Process :\nExchange file process, Please check your Email.....\n')
 	# -- send mail 
-	os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'smartams@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+	os.system("echo 'Hi Team, \n\nWe send you file for creation AD account, please execute in poper systems. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'AD Creation file "+datenow+"' -a "+ADEX_FILE+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
 
 else:
 	print ('\nAD and Exchange Process :\nExhcange file is empty, File Not Process....\n')
