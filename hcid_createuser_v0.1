@@ -272,7 +272,7 @@ with open(ZM_FILE) as zimbra_file:
 		print('\nZimbra Process:\nNot sending any Files, zimbra file is empty..\n')
 	else:
 		# send file zimbra to server zimbra - SSH
-		os.system("rsync -avh " +ZM_FILE+ " zimbra@"+ZM_SVR+":/opt/zimbra/script_zimbra/smart_ams/run/create/")
+		os.system("scp " +ZM_FILE+ " zimbra@"+ZM_SVR+":/opt/zimbra/script_zimbra/smart_ams/run/create/")
 		# archive file before remove 
 		os.system("cp -rf " +ZM_FILE+" "+ARCHIVE_ZM_TODAY)
 		# remove zimbra file 
