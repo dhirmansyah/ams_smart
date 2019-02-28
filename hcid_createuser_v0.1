@@ -17,6 +17,7 @@ from sqlalchemy import create_engine
 # create directory everyday + global variable
 COS_LIST='/opt/ams_smart/var/cos_list.csv'
 CATALOG='/opt/ams_smart/var/catalog.csv'
+datedb=(time.strftime("%Y-%m-%d"))
 datenow=(time.strftime("%Y-%m-%d:%T"))
 dirname=(time.strftime("%Y-%m-%d"))
 OUT_ADEX='/SMART/CREATE/OUT/AD_STG/'
@@ -28,7 +29,7 @@ ARCHIVE_AD='/SMART/CREATE/ARCHIVE/AD/'
 ARCHIVE_ZM='/SMART/CREATE/ARCHIVE/ZM/'
 ARCHIVE_ZM_TODAY=ARCHIVE_ZM+dirname+'/'
 filename=sys.argv[1]
-ZM_SVR="10.58.122.209"
+ZM_SVR="id-vx120.prod.homecredit.id"
 
 
 # -------------------- create folder every day
@@ -80,8 +81,10 @@ except :
 # FILE realtime
 ADEX_FILE=OUT_ADEX + dirname+'/'+'adexchange-'+datenow+'.csv'
 ZM_FILE=OUT_ZM + dirname+'/'+'adzimbra-'+datenow+'.csv'
-IMPORT_DB=OUT_DB + dirname+'/'+'importdb-'+datenow+'.csv'
+IMPORT_DB_ZM=OUT_DB + dirname+'/'+'importdb-zm-'+datenow+'.csv'
+IMPORT_DB_AD=OUT_DB + dirname+'/'+'importdb-ad-'+datenow+'.csv'
 ACCOUNT_EXIST=ERR_INFO + dirname+'/'+'account_exist-'+datenow+'.csv'
+ACCOUNT_FAILED=ERR_INFO + dirname+'/'+'account_failed-'+datenow+'.csv'
 
 
 #-- DB Engine
@@ -135,12 +138,12 @@ df['domain_name'] = domain_field
 df['ad_feature'] = df.AD.str.lower()
 
 #Add date Created column
-date_field = datenow
+date_field = datedb
 df['date_created'] = date_field
 
 #convert to lowercase for spesific column
 df['POS_ID']=df['POS_ID'].str.lower()
-df['CITY']=df['CITY'].str.lower()
+df['CITY']=df['CITY'].str.lower().str.strip()
 
 #Add colom for insert to database by default value
 df['status_employee']='0'
@@ -166,19 +169,27 @@ df['ZFIRST_NAME']="'"+df['FIRST_NAME']+"'"
 df['ZLAST_NAME']="'"+df['LAST_NAME']+"'"
 df['Zphone']="'"+df.MOBILE_PHONE.astype('str')+"'"
 
+#add domain @HCG.HOMECREDIT.NET
+df['sAMAccountName_db']=df.SAMACCOUNTNAME+'@hcg.homecredit.net'
+
 # DECIDE Field by feature and Position
 AD_EXCHANGE = df.loc[(df.AD.str.lower() == 'y') & (df.EXCHANGE.str.lower() == 'y')]
-AD_ZIMBRA = df.loc[(df.AD.str.lower() == 'y') & (df.EXCHANGE.str.lower() == 'n')]
-zimbraonly = df.loc[(df.AD.str.lower() == 'n') & (df.EXCHANGE.str.lower() == 'n')]
 
 
-# Khusus untuk Create Zimbra Join table antara AD_ZIMBRA dan zimbraonly
-zm_create = AD_ZIMBRA.append(zimbraonly)
-
-
-#---------- Join table 2 for zimbra DL------------------
+# All VALIDATION USER TO DEFINE FEATURE
+zm_ad = df.loc[(df.AD.str.lower() == 'y') & (df.EXCHANGE.str.lower() == 'n')]
+zm_nonad = df.loc[(df.AD.str.lower() == 'n') & (df.EXCHANGE.str.lower() == 'n')]
+zm_create = zm_ad.append(zm_nonad)
 zm_main = conv_dl_list.merge(zm_create, how = 'inner', on = ['POS_ID','CITY'])
-#zm_main.to_csv('/opt/output/alldf.csv')
+sort_zimbra = conv_dl_list.merge(zm_create, how = 'right')
+validation_zimbra = sort_zimbra[sort_zimbra.COS_ID.isnull()]
+validation_zimbra.to_csv(ACCOUNT_FAILED,encoding='utf-8',sep=',', index = None, columns=['EMP_NO','EMPLOYEE_NAME','USERNAME','EMAIL','PASSWORD','CITY','POS_ID'])
+# -- position not be change, if change it will broken logic parsing
+AD_ZIMBRA = zm_main.loc[(df.AD.str.lower() == 'y') & (zm_main.EXCHANGE.str.lower() == 'n')]
+zimbraonly = zm_main.loc[(df.AD.str.lower() == 'n') & (zm_main.EXCHANGE.str.lower() == 'n')]
+ad_main = AD_ZIMBRA.append(AD_EXCHANGE,sort=True)
+
+
 
 
 #Main Table AD Format
@@ -194,17 +205,11 @@ CONV_AD_ONLY.to_csv(ADEX_FILE, mode = 'a' ,sep=',', encoding='utf-8', index = No
 
 # Read exchange file
 exchangefile = pd.read_csv(ADEX_FILE)
-#print (exchangefile)
 
 
-# EXPORT to csv create zimbra
-# Generate file for creating file zimbra
+# Replace and remove some char
 CONV_ZM_AD = AD_ZIMBRA.astype('str').replace('\.0', '', regex=True)
 CONV_ZM_ONLY = zimbraonly.astype('str').replace('\.0', '', regex=True)
-
-# EXPORT to csv create zimbra
-# Generate file for creating file zimbra
-#CONV_ZM = zm_create.astype('str').replace('\.0', '', regex=True)
 CONV_ZM = zm_main.astype('str').replace('\.0', '', regex=True)
 
 # FORMAT CREATE ZIMBRA
@@ -220,9 +225,16 @@ zm_main.to_csv(ZM_FILE,encoding='utf-8',sep=' ', index = None, header=None, mode
 # ---------------- DB Segment ------------------------------
 tbl_db=['nik','username','upn','password','f_name','l_name','d_name','email','position','department','office','status_employee','status_email','date_created','otrs_date_created','id_lync_stts','id_mobile_stts','mobile_phone','ad_feature']
 
-#add domain @HCG.HOMECREDIT.NET
-#df['sAMAccountName_db']=df.sAMAccountName+'@HCG.HOMECREDIT.NET'
-df['sAMAccountName_db']=df.SAMACCOUNTNAME+'@hcg.homecredit.net'
+
+#print (ad_main)
+#print (zm_main)
+#print (validation_zimbra)
+
+#--- merge data before input to database
+db_validation = pd.concat([ad_main, CONV_ZM],sort=True)
+db_validation.EMP_NO = db_validation.EMP_NO.astype(int)
+db_validation = db_validation.drop_duplicates(subset='EMP_NO', keep="last")
+
 
 
 # -------------------------------------------------------------------------------- PROCESS FILES, NOTIF AND INSERT DB ---------------------------------------------------------------------------
@@ -234,16 +246,23 @@ if not validation_account.empty:
 else:
 	print('\nFile Exist:\nNo file exist, All data will process...\n')
 
+#-- Print and notif if data not success to build (insert to db or creating user)
+if not validation_zimbra.empty:
+	print('\nFile Not Success to process:\nPlease check email, there have some data that not success to process\n')
+	os.system("echo 'Hi Team, \n\nWe send you file or data that not success to process, because of CITY or POS_ID not found in CATALOG table. Please check and NEED YOUR ACCTION. \n\nThanks\n\n IT Servers '| mailx -v -r 'amsnew@homecredit.co.id' -s 'WARNING - Notif Data Not Process - AMS "+datenow+"' -a "+ACCOUNT_FAILED+" -S smtp=smtp1-int.id.prod doni.hirmansyah01@homecredit.co.id firmandha.noerdiansya@homecredit.co.id")
+else:
+	print('\nFile Exist:\nNo file exist, All data will process...\n')
+
+
 #------------------------------------- INSERT DB AMS
-#-- DB AMS
-if not df.empty:
-	df.to_csv(IMPORT_DB,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE','ad_feature'])
-	insertdb = pd.read_csv(IMPORT_DB)
+#-- DB AMS 
+if not db_validation.empty:
+	db_validation.to_csv(IMPORT_DB_AD,encoding='utf-8',sep=',',index = None, quotechar='"', header=tbl_db,columns=['EMP_NO','USERNAME','sAMAccountName_db','PASSWORD','FIRST_NAME','LAST_NAME','EMPLOYEE_NAME','EMAIL','POSITION','COST_CENTER','WORK_LOCATION','status_employee','status_email','date_created','TICKET','id_lync_stts_ftime','id_mobile_stts_ftime','MOBILE_PHONE','ad_feature'])
+	insertdb = pd.read_csv(IMPORT_DB_AD)
 	insertdb.to_sql(con=engine, index=False, name='tbl_users', if_exists='append')
 	print('\nInsert DB:\nImport DB Success......\n')
 else:
 	print('\nInsert DB:\nNo Import DB, because data is empty...\n')
-
 
 
 # ------------------------------------- SEND TO SSH and Email for result file
@@ -260,6 +279,8 @@ with open(ZM_FILE) as zimbra_file:
 		os.system("rm -rf "+ZM_FILE+ ";echo 'file "+ZM_FILE+" success and file aready removed..!'")
 		print('\nZimbra Process:\nZimbra File already send to remote server\n')
 
+
+
 # ----------- Notification to user
 
 
@@ -270,5 +291,4 @@ if not exchangefile.empty:
 
 else:
 	print ('\nAD and Exchange Process :\nExhcange file is empty, File Not Process....\n')
-
 
